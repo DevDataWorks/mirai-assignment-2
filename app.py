@@ -1,140 +1,260 @@
 import streamlit as st
-from google import genai
+from groq import Groq
 from dotenv import load_dotenv
 import os
 
-# Load API Key
+# -----------------------------
+# LOAD ENV
+# -----------------------------
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
 
-client = genai.Client(api_key=api_key)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Page Config
+client = Groq(
+    api_key=GROQ_API_KEY
+)
+
+# -----------------------------
+# PAGE CONFIG
+# -----------------------------
 st.set_page_config(
     page_title="AI Multiverse",
     page_icon="🌌",
-    layout="wide"
+    layout="centered"
 )
 
-# Personalities
-personas = {
-    "👨‍🏫 Teacher": "You are a helpful teacher who explains concepts simply.",
-    "💻 Software Engineer": "You are an experienced software engineer.",
-    "🔥 Motivational Coach": "You motivate users positively.",
-    "🚀 Entrepreneur": "You think like a startup founder.",
-    "🎓 College Professor": "You explain concepts clearly and academically.",
-    "😂 Stand-up Comedian": "You answer in a funny and humorous way."
+# -----------------------------
+# CUSTOM CSS
+# -----------------------------
+st.markdown("""
+<style>
+
+/* Main App */
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: white;
 }
 
-# Sidebar
-st.sidebar.title("🌌 AI Multiverse")
-st.sidebar.markdown("Choose an AI Personality")
+/* Content */
+.main .block-container {
+    max-width: 900px;
+    padding-top: 2rem;
+}
 
-selected_persona = st.sidebar.selectbox(
-    "Select Personality",
-    list(personas.keys())
+/* Title */
+h1 {
+    text-align: center;
+    color: #60a5fa !important;
+}
+
+/* All Text */
+p, span, div, label {
+    color: #f8fafc !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #111827,
+        #1e293b
+    );
+}
+
+/* Sidebar Text */
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* Selectbox */
+.stSelectbox > div > div {
+    background-color: #1e293b;
+    color: white;
+    border-radius: 12px;
+}
+
+/* Chat Messages */
+[data-testid="stChatMessage"] {
+    background: #1e293b;
+    border-radius: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #334155;
+}
+
+/* Chat Input */
+[data-testid="stChatInput"] {
+    background-color: #111827;
+    border-radius: 15px;
+}
+
+[data-testid="stChatInput"] textarea {
+    color: white !important;
+}
+
+/* Remove white header */
+header {
+    background: transparent !important;
+}
+
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(
+        90deg,
+        #2563eb,
+        #7c3aed
+    );
+    color: white;
+    border-radius: 10px;
+}
+
+/* Hover Effect */
+[data-testid="stChatMessage"]:hover {
+    border-color: #60a5fa;
+    transition: 0.3s;
+}
+
+</style>
+""", unsafe_allow_html=True)
+# -----------------------------
+# TITLE
+# -----------------------------
+st.title("🌌 AI Multiverse")
+
+st.markdown(
+    """
+    <h3 style='text-align:center;color:#334155;'>
+    Chat with Different AI Personalities
+    </h3>
+    """,
+    unsafe_allow_html=True
 )
 
-if st.sidebar.button("🗑️ Clear Chat"):
-    st.session_state.messages = []
-    st.rerun()
+# -----------------------------
+# SIDEBAR
+# -----------------------------
+st.sidebar.title("⚙️ App Settings")
 
-# Main UI
-st.title("🌌 AI Multiverse")
-st.write("Talk with different AI personalities from one universe.")
+personality = st.sidebar.selectbox(
+    "Choose a Personality",
+    [
+        "An Expert Hacker",
+        "A Friendly Teacher",
+        "A Motivational Speaker",
+        "A Panicked College Student at 3 AM",
+        "A 1920s Mafia Boss",
+        "A Highly Sarcastic Fitness Coach"
+    ]
+)
 
-# Chat History
+intensity = st.sidebar.slider(
+    "Intensity Level",
+    min_value=1,
+    max_value=10,
+    value=5
+)
+
+# -----------------------------
+# DYNAMIC AVATARS
+# -----------------------------
+if personality == "An Expert Hacker":
+    bot_avatar = "💻"
+
+elif personality == "A Friendly Teacher":
+    bot_avatar = "📚"
+
+elif personality == "A Motivational Speaker":
+    bot_avatar = "🔥"
+
+elif personality == "A Panicked College Student at 3 AM":
+    bot_avatar = "😱"
+
+elif personality == "A 1920s Mafia Boss":
+    bot_avatar = "🕴️"
+
+elif personality == "A Highly Sarcastic Fitness Coach":
+    bot_avatar = "🏋️"
+
+else:
+    bot_avatar = "🤖"
+
+# -----------------------------
+# SESSION STATE
+# -----------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# -----------------------------
+# DISPLAY CHAT HISTORY
+# -----------------------------
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+
+    with st.chat_message(
+        message["role"],
+        avatar=message.get("avatar")
+    ):
         st.write(message["content"])
 
-# User Input
-prompt = st.chat_input("Type your message...")
+# -----------------------------
+# CHAT INPUT
+# -----------------------------
+user_input = st.chat_input("Type your message here...")
 
-if prompt:
+if user_input:
+
+    # USER MESSAGE
+    with st.chat_message("user"):
+        st.write(user_input)
 
     st.session_state.messages.append(
-        {"role": "user", "content": prompt}
+        {
+            "role": "user",
+            "content": user_input
+        }
     )
 
-    with st.chat_message("user"):
-        st.write(prompt)
+    # PROMPT ENGINEERING
+    ai_instructions = f"""
+You are acting as {personality}.
 
-    instruction = personas[selected_persona]
+Intensity Level: {intensity}/10
+
+The higher the intensity level, the more strongly you should behave like this personality.
+
+Stay fully in character while answering the user's question.
+"""
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=f"""
-            You are acting as {selected_persona}.
 
-            {instruction}
-
-            User: {prompt}
-            """
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": ai_instructions
+                },
+                {
+                    "role": "user",
+                    "content": user_input
+                }
+            ]
         )
 
-        answer = response.text
+        ai_reply = response.choices[0].message.content
 
-    except Exception:
+        with st.chat_message(
+            "assistant",
+            avatar=bot_avatar
+        ):
+            st.write(ai_reply)
 
-        if "Teacher" in selected_persona:
-            answer = f"""
-👨‍🏫 Teacher Mode
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": ai_reply,
+                "avatar": bot_avatar
+            }
+        )
 
-That's a great question about "{prompt}".
-
-Let's understand it step by step. Learning becomes easier when complex topics are broken into smaller concepts.
-"""
-
-        elif "Software Engineer" in selected_persona:
-            answer = f"""
-💻 Software Engineer Mode
-
-Regarding "{prompt}", I would approach it using logical thinking, problem-solving, and practical implementation.
-"""
-
-        elif "Motivational Coach" in selected_persona:
-            answer = f"""
-🔥 Motivational Coach Mode
-
-Keep moving forward!
-
-Success in "{prompt}" comes from consistency, effort, and believing in yourself.
-"""
-
-        elif "Entrepreneur" in selected_persona:
-            answer = f"""
-🚀 Entrepreneur Mode
-
-From a business perspective, "{prompt}" could become an opportunity if it solves a real-world problem.
-"""
-
-        elif "College Professor" in selected_persona:
-            answer = f"""
-🎓 College Professor Mode
-
-Academically speaking, "{prompt}" can be analyzed from multiple viewpoints and practical applications.
-"""
-
-        else:
-            answer = f"""
-😂 Stand-up Comedian Mode
-
-You asked about "{prompt}".
-
-I tried debugging life once... turns out the problem was between the keyboard and the chair! 😆
-"""
-
-    st.session_state.messages.append(
-        {"role": "assistant", "content": answer}
-    )
-
-    with st.chat_message("assistant"):
-        st.write(answer)
-
-st.markdown("---")
-st.caption("Built with Streamlit and Gemini AI")
+    except Exception as e:
+        st.error(f"Error: {e}")
