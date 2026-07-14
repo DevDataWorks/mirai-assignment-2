@@ -1,13 +1,17 @@
-# AI Multiverse
+# AI Multiverse Chatbot
 
-A Streamlit-based persona switching chatbot built using Gemini API integration.
+A Streamlit chatbot with multiple AI personalities powered by Groq.
 
 ## Features
-- Multiple AI personalities
-- Interactive chat interface
-- Chat history
-- Clear chat functionality
-- Error handling
 
-## Note
-Gemini API integration is implemented in the project. During testing, the API project encountered free-tier quota/access limitations. To ensure the application remains functional, fallback responses were included.
+- Personality Selection
+- Intensity Slider
+- Dynamic Avatars
+- Chat Interface
+- Groq API
+
+## Run
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
